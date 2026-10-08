@@ -1,0 +1,52 @@
+import io
+
+import pandas as pd
+
+from app.validation import read_upload, validate_rows
+
+
+def test_valid_and_sorted():
+    rep = validate_rows([["05/07/2025", 31, 2, 15, 7, 22, 9], ["2025-07-02", 1, 2, 3, 4, 5, 6]])
+    assert len(rep.valid) == 2 and not rep.errors
+    assert rep.valid[0].fecha.isoformat() == "2025-07-02"
+    assert rep.valid[1].numeros == (2, 7, 9, 15, 22, 31)
+
+
+def test_rejections():
+    rows = [
+        ["2025-07-01", 1, 2, 3, 4, 5, 32],      # fuera de rango
+        ["2025-07-02", 1, 2, 3, 4, 5, 5],       # repetido
+        ["2025-07-03", 1, 2, 3, 4, 5],          # incompleto
+        ["2025-07-04", 1, 2, 3, 4, 5, 6, 7],    # demasiados
+        ["31/02/2025", 1, 2, 3, 4, 5, 6],       # fecha inválida
+        ["", 1, 2, 3, 4, 5, 6],                 # sin fecha
+        ["2025-07-05", 1, 2, "x", 4, 5, 6],     # no numérico
+        ["2025-07-06", 1, 2, 3, 4, 5, 6],
+        ["2025-07-06", 7, 8, 9, 10, 11, 12],    # fecha duplicada
+        ["2025-07-07", 0, 2, 3, 4, 5, 6],       # cero fuera de rango
+    ]
+    rep = validate_rows(rows)
+    tipos = [e["tipo"] for e in rep.errors]
+    assert len(rep.valid) == 1
+    assert tipos == ["fuera_de_rango", "repetido", "incompleto", "valor_invalido", "fecha_invalida",
+                     "incompleto", "valor_invalido", "duplicado", "fuera_de_rango"]
+
+
+def test_same_combo_warning():
+    rep = validate_rows([["2025-07-01", 1, 2, 3, 4, 5, 6], ["2025-07-02", 6, 5, 4, 3, 2, 1]])
+    assert len(rep.valid) == 2 and rep.warnings[0]["tipo"] == "combinacion_repetida"
+
+
+def test_csv_named_and_positional():
+    named = "fecha;n1;n2;n3;n4;n5;n6\n01/07/2025;1;2;3;4;5;6\n"
+    assert len(validate_rows(read_upload("a.csv", named.encode())).valid) == 1
+    pos = "Fecha,A,B,C,D,E,F\n2025-07-01,10,11,12,13,14,15\n"
+    assert len(validate_rows(read_upload("b.csv", pos.encode())).valid) == 1
+
+
+def test_excel():
+    buf = io.BytesIO()
+    pd.DataFrame({"fecha": ["2025-07-01"], "numero1": [1], "numero2": [2], "numero3": [3],
+                  "numero4": [4], "numero5": [5], "numero6": [31]}).to_excel(buf, index=False)
+    rep = validate_rows(read_upload("x.xlsx", buf.getvalue()))
+    assert rep.valid[0].numeros == (1, 2, 3, 4, 5, 31)
