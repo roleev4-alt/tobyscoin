@@ -107,7 +107,7 @@ class ModelConfig:
             raise ValueError(f"Modo desconocido: {cfg.mode}")
         if len(cfg.overlap_penalty) != PICK + 1:
             raise ValueError("overlap_penalty debe tener 7 valores (0..6 compartidos)")
-        cfg.n_candidates = int(min(max(cfg.n_candidates, 500), 20000))
+        cfg.n_candidates = int(min(max(cfg.n_candidates, 1000), 10000))
         return cfg
 
     def fingerprint(self) -> str:

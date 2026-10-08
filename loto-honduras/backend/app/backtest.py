@@ -444,7 +444,10 @@ def overfitting_report(fold_info, optimize, trials, reg, T) -> dict:
     oos_m = float(np.mean(oos)) if oos else 0.0
     gap = ins_m - oos_m
     ratio = (float(np.mean(inner)) / n_params) if n_params else float("inf")
-    if gap > 0.08 or ratio < 8:
+    kept_default = all(f["optimizacion"].get("eligio_default") for f in fold_info if f["optimizacion"].get("optimizado"))
+    if kept_default:
+        risk = "Bajo"  # la regularización conservó los pesos iniciales en todos los bloques
+    elif gap > 0.08 or ratio < 8:
         risk = "Alto"
     elif gap > 0.03 or ratio < 15:
         risk = "Medio"
@@ -459,7 +462,10 @@ def overfitting_report(fold_info, optimize, trials, reg, T) -> dict:
         "lift_fuera_muestra_prom": round(oos_m, 4),
         "brecha": round(gap, 4),
         "riesgo": risk,
-        "explicacion": ("Lift = capacidad del índice para ordenar más alto a los números que luego salieron "
+        "pesos_iniciales_conservados": kept_default,
+        "explicacion": (("En todos los bloques la optimización regularizada conservó los pesos iniciales: ninguna "
+                         "alternativa mejoró de forma robusta en ambas mitades del entrenamiento. " if kept_default else "") +
+                        "Lift = capacidad del índice para ordenar más alto a los números que luego salieron "
                         "(0 = ninguna). Si el lift dentro de muestra supera claramente al lift fuera de muestra, "
                         "los pesos se ajustaron al ruido del entrenamiento."),
     }

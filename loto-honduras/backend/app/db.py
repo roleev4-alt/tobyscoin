@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import sqlite3
+import threading
+from functools import wraps
 
 from .validation import Draw
 
@@ -57,14 +59,25 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def locked(fn):
+    """La API atiende peticiones en varios hilos: el acceso a la conexión se serializa."""
+    @wraps(fn)
+    def inner(self, *a, **k):
+        with self.lock:
+            return fn(self, *a, **k)
+    return inner
+
+
 class Store:
     def __init__(self, path: str = DB_PATH):
         self.path = path
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self.lock = threading.RLock()
 
     # ---------- sorteos ----------
+    @locked
     def insert_draws(self, draws: list[Draw], fuente: str, sintetico: bool = False,
                      replace: bool = False) -> dict:
         inserted, skipped = 0, []
@@ -85,6 +98,7 @@ class Store:
         self.conn.commit()
         return {"insertados": inserted, "omitidos": skipped}
 
+    @locked
     def log_import(self, fuente: str, filas: int, insertados: int, rechazados: int, detalle: dict):
         self.conn.execute(
             "INSERT INTO imports (fecha,fuente,filas,insertados,rechazados,detalle) VALUES (?,?,?,?,?,?)",
@@ -92,10 +106,12 @@ class Store:
         )
         self.conn.commit()
 
+    @locked
     def imports(self) -> list[dict]:
         rows = self.conn.execute("SELECT id,fecha,fuente,filas,insertados,rechazados FROM imports ORDER BY id DESC LIMIT 50")
         return [dict(r) for r in rows]
 
+    @locked
     def draws(self, start: date | None = None, end: date | None = None) -> list[Draw]:
         q, args = "SELECT * FROM draws WHERE 1=1", []
         if start:
@@ -108,18 +124,22 @@ class Store:
         return [Draw(date.fromisoformat(r["fecha"]), (r["n1"], r["n2"], r["n3"], r["n4"], r["n5"], r["n6"]))
                 for r in self.conn.execute(q, args)]
 
+    @locked
     def draw_rows(self) -> list[dict]:
         return [dict(r) for r in self.conn.execute("SELECT * FROM draws ORDER BY fecha DESC")]
 
+    @locked
     def delete_draw(self, fecha: str) -> bool:
         cur = self.conn.execute("DELETE FROM draws WHERE fecha=?", (fecha,))
         self.conn.commit()
         return cur.rowcount > 0
 
+    @locked
     def clear_draws(self, only_synthetic: bool = False):
         self.conn.execute("DELETE FROM draws" + (" WHERE sintetico=1" if only_synthetic else ""))
         self.conn.commit()
 
+    @locked
     def data_info(self) -> dict:
         r = self.conn.execute(
             "SELECT COUNT(*) c, MIN(fecha) mn, MAX(fecha) mx, MAX(importado) imp, SUM(sintetico) s FROM draws"
@@ -129,6 +149,7 @@ class Store:
                 "sinteticos": r["s"] or 0, "fuentes": fuentes}
 
     # ---------- experimentos ----------
+    @locked
     def save_experiment(self, tipo: str, nombre: str, model_version: str, seed: int, dataset_hash: str,
                         periodo: tuple, config: dict, params: dict, resultado: dict) -> int:
         res_json = json.dumps(resultado, sort_keys=True, default=str)
@@ -142,6 +163,7 @@ class Store:
         self.conn.commit()
         return cur.lastrowid
 
+    @locked
     def experiments(self, tipo: str | None = None) -> list[dict]:
         q = "SELECT id,creado,tipo,nombre,model_version,seed,dataset_hash,periodo_inicio,periodo_fin,resultado_hash FROM experiments"
         args = []
@@ -150,6 +172,7 @@ class Store:
             args.append(tipo)
         return [dict(r) for r in self.conn.execute(q + " ORDER BY id DESC", args)]
 
+    @locked
     def experiment(self, exp_id: int) -> dict | None:
         r = self.conn.execute("SELECT * FROM experiments WHERE id=?", (exp_id,)).fetchone()
         if not r:
