@@ -1,0 +1,24 @@
+LOTO HONDURAS — ANALIZADOR ESTADÍSTICO
+======================================
+
+Requisito único: Python 3.11 o superior (https://www.python.org/downloads/).
+En Windows, marque "Add Python to PATH" al instalarlo.
+
+CÓMO ABRIR LA APP
+  Windows ........ doble clic en INICIAR.bat
+  macOS / Linux .. ejecute ./iniciar.sh en una terminal
+
+La primera vez instala sus dependencias (necesita internet, 1–3 minutos).
+Luego se abre el navegador en http://localhost:8000
+Para cerrar la app, cierre la ventana negra (o Ctrl+C).
+
+PRIMEROS PASOS
+  1. Pestaña «Datos históricos»: importe los resultados reales (CSV/Excel)
+     o captúrelos a mano. Hay una plantilla descargable.
+     También puede cargar la demo sintética (NO son resultados reales).
+  2. Recorra Análisis → Índices → Portafolio → Laboratorio.
+
+Sus datos se guardan en backend/loto.db (en su computadora).
+
+Los sorteos de una lotería justa son eventos independientes. Esta herramienta
+analiza el pasado; no predice resultados ni garantiza premios.

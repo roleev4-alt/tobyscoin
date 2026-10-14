@@ -10,6 +10,12 @@ azar fuera de muestra, **sin asumir que sí**.
 
 ## Ejecutar
 
+**Forma rápida:** con Python 3.11+ instalado, doble clic en `INICIAR.bat` (Windows) o `./iniciar.sh`
+(macOS/Linux). La primera vez crea un entorno e instala dependencias; luego abre http://localhost:8000.
+Requiere el frontend compilado en `frontend/dist` (`npm run build`), que ya viene incluido en el paquete descargable.
+
+**Forma manual (desarrollo):**
+
 ```bash
 # Backend (Python 3.11+)
 cd backend
