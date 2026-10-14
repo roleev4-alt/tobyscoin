@@ -2,9 +2,16 @@
 chcp 65001 >nul
 title Loto Honduras - Analizador Estadistico
 cd /d "%~dp0"
-where py >nul 2>nul && (set PY=py -3) || (set PY=python)
+rem Se prefieren versiones con paquetes ya compilados para Windows (3.13, 3.12, 3.11).
+set PY=
+for %%V in (3.13 3.12 3.11) do (
+  if not defined PY (
+    py -%%V --version >nul 2>nul && set "PY=py -%%V"
+  )
+)
+if not defined PY set PY=python
 %PY% --version >nul 2>nul || (
-  echo No se encontro Python. Instale Python 3.11 o superior desde https://www.python.org/downloads/
+  echo No se encontro Python. Instale Python 3.13 (Windows installer 64-bit) desde https://www.python.org/downloads/windows/
   echo Marque la opcion "Add Python to PATH" durante la instalacion.
   pause
   exit /b 1

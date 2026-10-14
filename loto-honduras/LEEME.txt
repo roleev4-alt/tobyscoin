@@ -1,8 +1,11 @@
 LOTO HONDURAS — ANALIZADOR ESTADÍSTICO
 ======================================
 
-Requisito único: Python 3.11 o superior (https://www.python.org/downloads/).
-En Windows, marque "Add Python to PATH" al instalarlo.
+Requisito único: Python 3.11, 3.12 o 3.13 (recomendado 3.13).
+Windows: https://www.python.org/downloads/windows/ → "Python 3.13.x" →
+"Windows installer (64-bit)" (.exe). Marque "Add python.exe to PATH".
+Evite versiones muy nuevas (3.14+) y el "install manager" (.msix): algunas
+librerías científicas pueden no estar disponibles aún para ellas.
 
 CÓMO ABRIR LA APP
   Windows ........ doble clic en INICIAR.bat
