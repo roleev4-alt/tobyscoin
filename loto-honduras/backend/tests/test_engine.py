@@ -19,7 +19,7 @@ def _valid_portfolio(C):
     assert C.shape == (10, 6)
     assert len({tuple(r) for r in C.tolist()}) == 10
     for r in C.tolist():
-        assert r == sorted(r) and len(set(r)) == 6 and 1 <= r[0] and r[-1] <= 31
+        assert r == sorted(r) and len(set(r)) == 6 and 1 <= r[0] and r[-1] <= st.NUM_MAX
 
 
 def test_portfolios_are_valid_and_modes_differ():
@@ -61,12 +61,13 @@ def test_monte_carlo_shapes():
     mc = monte_carlo(DRAWS[:5], 200, np.random.default_rng(1))["hits"]
     assert mc.shape == (200, 5, 10) and mc.min() >= 0 and mc.max() <= 6
     # Media cercana a la esperanza hipergeométrica 36/31.
-    assert abs(mc.mean() - 36 / 31) < 0.05
+    assert abs(mc.mean() - 36 / st.N) < 0.05
 
 
 def test_theoretical_distributions():
     th = st.theoretical()
-    assert th["total_combinaciones"] == 736281
+    from math import comb
+    assert th["total_combinaciones"] == comb(st.N, 6)
     assert abs(sum(th["impares"].values()) - 1) < 1e-9
     assert abs(sum(st.hits_pmf().values()) - 1) < 1e-9
 

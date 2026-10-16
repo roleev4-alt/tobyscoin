@@ -28,7 +28,7 @@ from .db import Store, dataset_hash, result_hash
 from .engine import generate_portfolios, portfolio_report, random_report
 from .scoring import COMPONENT_LABELS
 from .synthetic import SOURCE_LABEL, synthetic_draws
-from .validation import Draw, parse_date, read_upload, validate_rows
+from .validation import Draw, parse_date, parse_text, read_upload, validate_rows
 
 app = FastAPI(title="Loto Honduras — Analizador Estadístico", version=MODEL_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -68,6 +68,12 @@ class BacktestRequest(AnalysisRequest):
 class ManualDraw(BaseModel):
     fecha: str
     numeros: list
+
+
+class TextImport(BaseModel):
+    texto: str
+    fuente: str | None = None
+    confirmar: bool = False
 
 
 class UrlImport(BaseModel):
@@ -119,7 +125,8 @@ def info():
     return {
         "app": "LOTO HONDURAS — ANALIZADOR ESTADÍSTICO",
         "version_modelo": MODEL_VERSION,
-        "rango": [NUM_MIN, NUM_MAX], "numeros_por_sorteo": PICK,
+        "rango": [NUM_MIN, NUM_MAX], "numeros_por_sorteo": PICK, "bajo_max": st.LOW_MAX,
+        "juego": "Loto Super Premio (miércoles y sábados)",
         "periodo_por_defecto": {"inicio": DEFAULT_PERIOD_START.isoformat(), "fin": DEFAULT_PERIOD_END.isoformat()},
         "datos": store.data_info(),
         "importaciones": store.imports()[:10],
@@ -190,6 +197,24 @@ def import_url(req: UrlImport):
     else:
         rows = read_upload("remote.csv", content)
     return do_import(rows, req.fuente or f"URL: {req.url}", False)
+
+
+@app.post("/api/import/text")
+def import_text(req: TextImport):
+    """Texto pegado desde una página de resultados. Sin `confirmar` solo muestra la vista previa."""
+    if len(req.texto) > 2_000_000:
+        raise HTTPException(400, "El texto es demasiado largo (máx. 2 MB).")
+    rows = parse_text(req.texto)
+    if not rows:
+        raise HTTPException(400, "No se encontraron fechas en el texto. Copie la lista de resultados incluyendo las fechas.")
+    fuente = (req.fuente or "").strip() or "Texto pegado"
+    if req.confirmar:
+        return do_import(rows, fuente, False)
+    rep = validate_rows(rows, fuente)
+    existing = {r["fecha"] for r in store.draw_rows()}
+    return {**rep.summary(), "fuente": fuente, "vista_previa": True,
+            "sorteos": [{"fecha": d.key(), "numeros": list(d.numeros), "ya_existe": d.key() in existing}
+                        for d in rep.valid]}
 
 
 @app.get("/api/template.csv")

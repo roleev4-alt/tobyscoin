@@ -16,8 +16,11 @@ Luego se abre el navegador en http://localhost:8000
 Para cerrar la app, cierre la ventana negra (o Ctrl+C).
 
 PRIMEROS PASOS
-  1. Pestaña «Datos históricos»: importe los resultados reales (CSV/Excel)
-     o captúrelos a mano. Hay una plantilla descargable.
+  1. Pestaña «Datos históricos» → «Pegar resultados copiados de una página web»:
+     abra una página con el historial de Loto Super Premio, seleccione la lista
+     (fechas y números), cópiela, péguela, pulse «Vista previa» y luego «Importar».
+     También acepta CSV/Excel y captura manual. Juego: 6 números del 01 al 33.
+     Luego pulse «Usar todo el historial cargado» para fijar el período.
      También puede cargar la demo sintética (NO son resultados reales).
   2. Recorra Análisis → Índices → Portafolio → Laboratorio.
 

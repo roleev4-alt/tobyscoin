@@ -17,7 +17,7 @@ export default function Indices() {
   return (
     <div className="grid">
       <Notice kind="warn"><b>Este índice NO representa la probabilidad matemática real de que un número aparezca.</b> En una lotería justa
-        los 31 números tienen la misma probabilidad (6/31 ≈ 19.4%) en cada sorteo. El índice solo ordena características históricas.</Notice>
+        los {info.rango[1]} números tienen la misma probabilidad (6/{info.rango[1]} ≈ {fmt(600 / info.rango[1], 1)}%) en cada sorteo. El índice solo ordena características históricas.</Notice>
       <div className="grid g2">
         <Card title="Pesos del índice de selección histórica" sub="Valores iniciales configurables. Se normalizan para sumar 100.">
           {comps.map(({ clave, etiqueta }) => (
@@ -39,7 +39,7 @@ export default function Indices() {
             <label className="f">Tríos: frecuencia mínima<input type="number" min="2" max="10" value={extra.min_trio_count} onChange={(e) => setExtra({ ...extra, min_trio_count: Number(e.target.value) })} /></label>
           </div>
           <div className="small sub mt">
-            <p><b>Cómo se calcula:</b> cada componente se mide para los 31 números con los sorteos del período, se normaliza entre 0 (mínimo) y 1 (máximo) y se multiplica por su peso.</p>
+            <p><b>Cómo se calcula:</b> cada componente se mide para cada número con los sorteos del período, se normaliza entre 0 (mínimo) y 1 (máximo) y se multiplica por su peso.</p>
             <p>Frecuencia histórica = % de sorteos · Reciente = % en la ventana · Tendencia = (tasa corta − larga)/error estándar · Pares = promedio de sus 5 pares más frecuentes ·
               Tríos = participación en tríos frecuentes · Recencia = aparición más reciente puntúa más · Estructura = representación histórica de su paridad, mitad (bajo/alto) y década.</p>
           </div>

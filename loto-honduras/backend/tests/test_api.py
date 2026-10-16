@@ -11,7 +11,7 @@ def test_flow_demo_portfolio_reproduce():
     info = client.get("/api/info").json()
     assert info["datos"]["sinteticos"] == info["datos"]["total"] > 100
     a = client.post("/api/analysis", json={}).json()
-    assert len(a["frecuencia"]["filas"]) == 31 and a["sorteos"] > 100
+    assert len(a["frecuencia"]["filas"]) == info["rango"][1] and a["sorteos"] > 100
     p = client.post("/api/portfolio", json={"config": {"n_candidates": 1000}})
     assert p.status_code == 200, p.text
     body = p.json()
@@ -33,4 +33,17 @@ def test_manual_and_validation_errors():
     assert client.post("/api/demo").status_code == 409
     up = client.post("/api/import", files={"file": ("d.csv", b"fecha,n1,n2,n3,n4,n5,n6\n2025-07-03,1,2,3,4,5,6\n2025-07-04,1,1,2,3,4,5\n")})
     assert up.json()["insertados"] == 1 and up.json()["filas_rechazadas"] == 1
+    store.clear_draws()
+
+
+def test_paste_preview_then_import():
+    store.clear_draws()
+    txt = "Miércoles, 14 Octubre 2026 07 08 29 30 31 33\nSábado, 10 Octubre 2026 01 02 07 12 14 29\n"
+    prev = client.post("/api/import/text", json={"texto": txt}).json()
+    assert prev["vista_previa"] and prev["sorteos_validos"] == 2
+    assert store.data_info()["total"] == 0  # la vista previa no guarda nada
+    done = client.post("/api/import/text", json={"texto": txt, "confirmar": True, "fuente": "prueba"}).json()
+    assert done["insertados"] == 2
+    again = client.post("/api/import/text", json={"texto": txt}).json()
+    assert all(x["ya_existe"] for x in again["sorteos"])
     store.clear_draws()

@@ -117,7 +117,7 @@ export default function Laboratorio() {
           </Card>
 
           <div className="grid g2">
-            <Card title="9 · Modelo vs azar" sub="Aciertos promedio por jugada (línea = valor esperado por azar 36/31)">
+            <Card title="9 · Modelo vs azar" sub={`Aciertos promedio por jugada (línea = valor esperado por azar: ${fmt(r.referencia_teorica.aciertos_esperados_por_jugada, 3)})`}>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={[["A", "concentrado"], ["B", "equilibrado"], ["C", "diversificado"], ["Aleatorio", "aleatorio"]]
                   .map(([n, m]) => ({ n, v: r.portafolios[m].metricas.promedio })).concat([{ n: "MC (media)", v: r.monte_carlo.promedio_aciertos.media }])}>

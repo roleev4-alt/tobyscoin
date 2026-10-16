@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 import io
 import re
+import unicodedata
 
 import pandas as pd
 
@@ -49,25 +50,71 @@ class ValidationReport:
 DATE_FORMATS = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%y", "%m/%d/%Y"]
 
 
+MONTHS = {
+    "enero": 1, "ene": 1, "january": 1, "jan": 1,
+    "febrero": 2, "feb": 2, "february": 2,
+    "marzo": 3, "mar": 3, "march": 3,
+    "abril": 4, "abr": 4, "april": 4, "apr": 4,
+    "mayo": 5, "may": 5,
+    "junio": 6, "jun": 6, "june": 6,
+    "julio": 7, "jul": 7, "july": 7,
+    "agosto": 8, "ago": 8, "august": 8, "aug": 8,
+    "septiembre": 9, "setiembre": 9, "sept": 9, "sep": 9, "set": 9, "september": 9,
+    "octubre": 10, "oct": 10, "october": 10,
+    "noviembre": 11, "nov": 11, "november": 11,
+    "diciembre": 12, "dic": 12, "december": 12, "dec": 12,
+}
+_MONTH_RE = "|".join(sorted(MONTHS, key=len, reverse=True))
+# Fechas reconocidas dentro de texto libre (copiado de una página de resultados).
+DATE_IN_TEXT = re.compile(
+    r"(?P<iso>\b\d{4}-\d{1,2}-\d{1,2}\b)"
+    r"|(?P<num>\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b)"
+    rf"|(?P<dmy>\b\d{{1,2}}\s+(?:de\s+)?(?:{_MONTH_RE})\.?\s*(?:de|del|,)?\s*\d{{4}}\b)"
+    rf"|(?P<mdy>\b(?:{_MONTH_RE})\.?\s+\d{{1,2}},?\s+\d{{4}}\b)",
+    re.I,
+)
+
+
+def _strip_accents(s: str) -> str:
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+
+
+def _text_date(s: str) -> date | None:
+    t = _strip_accents(s.lower())
+    m = re.search(rf"(\d{{1,2}})\s+(?:de\s+)?({_MONTH_RE})\.?\s*(?:de|del|,)?\s*(\d{{4}})", t)
+    if m:
+        d, mo, y = int(m.group(1)), MONTHS[m.group(2)], int(m.group(3))
+    else:
+        m = re.search(rf"({_MONTH_RE})\.?\s+(\d{{1,2}}),?\s+(\d{{4}})", t)
+        if not m:
+            return None
+        mo, d, y = MONTHS[m.group(1)], int(m.group(2)), int(m.group(3))
+    try:
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
 def parse_date(value) -> date | None:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
+    if isinstance(value, pd.Timestamp):
+        return None if pd.isna(value) else value.date()
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
         return value
-    if isinstance(value, pd.Timestamp):
-        return None if pd.isna(value) else value.date()
     s = str(value).strip()
     if not s:
         return None
     s = s.split(" ")[0] if re.match(r"^\d{4}-\d{2}-\d{2} ", s) else s
+    s2 = s.replace(".", "/") if re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", s) else s
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(s, fmt).date()
+            return datetime.strptime(s2, fmt).date()
         except ValueError:
             continue
-    return None
+    return _text_date(s)
 
 
 def _parse_int(value) -> int | None:
@@ -85,6 +132,17 @@ def _parse_int(value) -> int | None:
     return int(s)
 
 
+def _expand_cells(values: list) -> list:
+    """Separa celdas con varios números ("01 02 07 12 14 29", "01-02-07-12-14-29")."""
+    out = []
+    for v in values:
+        if isinstance(v, str) and re.fullmatch(r"\s*\d{1,2}(\s*[-,;/ ]\s*\d{1,2})+\s*", v):
+            out.extend(re.findall(r"\d{1,2}", v))
+        else:
+            out.append(v)
+    return out
+
+
 def validate_rows(rows: list[dict | list], source_label: str = "") -> ValidationReport:
     """Cada fila: {'fecha': ..., 'numeros': [...]} o lista [fecha, n1..n6]."""
     rep = ValidationReport(total_rows=len(rows))
@@ -97,6 +155,7 @@ def validate_rows(rows: list[dict | list], source_label: str = "") -> Validation
         else:
             raw_date, raw_nums = (row[0] if row else None), list(row[1:])
         raw_nums = [n for n in raw_nums if not (n is None or (isinstance(n, float) and pd.isna(n)) or str(n).strip() == "")]
+        raw_nums = _expand_cells(raw_nums)
         ctx = {"fila": i, "fuente": source_label, "valor": f"{raw_date} | {raw_nums}"}
 
         d = parse_date(raw_date)
@@ -161,3 +220,46 @@ def read_upload(filename: str, content: bytes) -> list[list]:
         sep = ";" if text.count(";") > text.count(",") else ","
         df = pd.read_csv(io.StringIO(text), sep=sep, dtype=str, keep_default_na=False)
     return dataframe_to_rows(df)
+
+
+_NOISE = [
+    re.compile(r"\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:[ap]\.?\s*m\.?)?", re.I),   # horas: 9:00 p.m.
+    re.compile(r"\b\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?\b"),                  # montos: 10,000,000
+    re.compile(r"\b\d+[.,]\d+\b"),                                          # decimales
+    re.compile(r"\b\d+\s*[xX]\b"),                                           # multiplicadores: 2X
+]
+
+
+def parse_text(text: str) -> list[dict]:
+    """Extrae sorteos de texto copiado de una página de resultados.
+
+    Busca cada fecha y toma los primeros 6 números de 1–2 dígitos que la siguen
+    (o, si el texto pone los números antes de la fecha, los 6 que la preceden).
+    No corrige nada: lo que no tenga exactamente 6 números queda como fila
+    incompleta para que la validación lo reporte.
+    """
+    dates = list(DATE_IN_TEXT.finditer(text))
+    if not dates:
+        return []
+    clean = text
+    for rx in _NOISE:
+        clean = rx.sub(lambda m: " " * len(m.group(0)), clean)
+    # Las fechas se blanquean para que sus dígitos no se lean como números del sorteo.
+    for m in dates:
+        clean = clean[:m.start()] + " " * (m.end() - m.start()) + clean[m.end():]
+    nums = [(m.start(), m.group(0)) for m in re.finditer(r"(?<![\d#])\d{1,2}(?!\d)", clean)]
+
+    def segment(a: int, b: int) -> list[str]:
+        return [v for p, v in nums if a <= p < b]
+
+    after, before = [], []
+    for i, m in enumerate(dates):
+        nxt = dates[i + 1].start() if i + 1 < len(dates) else len(text)
+        prv = dates[i - 1].end() if i > 0 else 0
+        after.append(segment(m.end(), nxt)[:6])
+        seg_b = segment(prv, m.start())
+        before.append(seg_b[-6:])
+    complete_after = sum(len(x) == 6 for x in after)
+    complete_before = sum(len(x) == 6 for x in before)
+    chosen = after if complete_after >= complete_before else before
+    return [{"fecha": m.group(0).strip(), "numeros": nums_i} for m, nums_i in zip(dates, chosen)]

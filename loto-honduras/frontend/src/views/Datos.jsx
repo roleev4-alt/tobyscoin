@@ -24,6 +24,57 @@ function ValidationReport({ r }) {
   );
 }
 
+function PasteImport({ onDone, info }) {
+  const [texto, setTexto] = useState("");
+  const [fuente, setFuente] = useState("");
+  const [prev, setPrev] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const call = async (confirmar) => {
+    setBusy(true); setErr("");
+    try {
+      const r = await api.post("/import/text", { texto, fuente: fuente || null, confirmar });
+      if (confirmar) { setPrev(null); setTexto(""); onDone(r); } else setPrev(r);
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  const nuevos = prev ? prev.sorteos.filter((x) => !x.ya_existe).length : 0;
+  return (
+    <Card title="Pegar resultados copiados de una página web"
+      sub={`Forma más rápida. Abra una página con el historial de ${info.juego}, seleccione la lista de resultados (fechas y números), cópiela (Ctrl+C) y péguela aquí (Ctrl+V).`}>
+      <label className="f">Fuente (de dónde copió los datos)
+        <input type="text" placeholder="Ej.: loto.hn — historial Super Premio" value={fuente} onChange={(e) => setFuente(e.target.value)} />
+      </label>
+      <textarea value={texto} onChange={(e) => { setTexto(e.target.value); setPrev(null); }} rows={9}
+        placeholder={"Ejemplos de formatos reconocidos:\nMiércoles, 14 Octubre 2026   07 08 29 30 31 33\n11 de marzo de 2026: 23 - 28 - 02 - 22 - 33 - 18\n05/09/2026 | 9 12 18 20 23 26"}
+        style={{ width: "100%", marginTop: 8, padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", font: "13px/1.4 ui-monospace, monospace" }} />
+      <div className="row mt-s">
+        <button className="btn primary" disabled={busy || !texto.trim()} onClick={() => call(false)}>Vista previa</button>
+        {prev && <button className="btn primary" disabled={busy || !nuevos} onClick={() => call(true)}>Importar {nuevos} sorteos nuevos</button>}
+        {busy && <span className="sub">Procesando…</span>}
+      </div>
+      <p className="small sub">Se ignoran horas («9:00 p.m.»), montos de premios y multiplicadores. Se toman los 6 números que siguen a cada fecha; nada se completa ni se inventa.
+        Revise la vista previa contra la página original antes de importar.</p>
+      {err && <Notice kind="danger"><b>Error: </b>{err}</Notice>}
+      {prev && (
+        <div className="mt-s">
+          <Notice kind={prev.filas_rechazadas ? "warn" : "ok"}>
+            <b>Vista previa (aún no guardado):</b> {prev.filas_leidas} fechas encontradas · {prev.sorteos_validos} sorteos válidos · {nuevos} nuevos ·{" "}
+            {prev.sorteos_validos - nuevos} ya existían · {prev.filas_rechazadas} rechazados
+          </Notice>
+          {prev.errores.length > 0 && (
+            <SimpleTable max={180} cols={[{ k: "tipo", h: "Problema", l: 1 }, { k: "motivo", h: "Motivo", l: 1 }, { k: "valor", h: "Texto leído", l: 1 }]} rows={prev.errores} />
+          )}
+          <SimpleTable max={260} rows={prev.sorteos} cols={[
+            { k: "fecha", h: "Fecha", f: (r) => fmtDate(r.fecha) },
+            { k: "n", h: "Números", l: 1, f: (r) => r.numeros.map(pad).join(" · ") },
+            { k: "e", h: "Estado", l: 1, f: (r) => <span className={`chip ${r.ya_existe ? "" : "ok"}`}>{r.ya_existe ? "ya existe" : "nuevo"}</span> },
+          ]} />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function Datos() {
   const { info, draws, periodo, setPeriodo, refreshData, setTab } = useApp();
   const [p, setP] = useState(periodo);
@@ -75,10 +126,13 @@ export default function Datos() {
           <label className="f">Hasta<input type="date" value={p.fin} onChange={(e) => setP({ ...p, fin: e.target.value })} /></label>
           <button className="btn primary" style={{ alignSelf: "flex-end" }} onClick={() => setPeriodo(p)}>Aplicar período</button>
           <button className="btn" style={{ alignSelf: "flex-end" }} onClick={() => { const x = { inicio: "2025-07-01", fin: "2026-10-04" }; setP(x); setPeriodo(x); }}>Restablecer</button>
+          <button className="btn" style={{ alignSelf: "flex-end" }} disabled={!d.desde} onClick={() => { const x = { inicio: d.desde, fin: d.hasta }; setP(x); setPeriodo(x); }}>Usar todo el historial cargado</button>
           <div className="spacer" />
           <button className="btn" style={{ alignSelf: "flex-end" }} disabled={!inPeriod} onClick={() => setTab("analisis")}>Siguiente: Análisis →</button>
         </div>
       </Card>
+
+      <PasteImport info={info} onDone={async (r) => { setReport(r); await refreshData(); }} />
 
       <div className="grid g2">
         <Card title="Importar CSV / Excel" sub="Columnas: fecha, n1…n6 (o numero1…numero6). También se acepta: primera columna fecha y seis columnas de números.">
@@ -89,7 +143,7 @@ export default function Datos() {
             <input type="file" accept=".csv,.xlsx,.xls,.txt" disabled={busy} onChange={(e) => e.target.files[0] && upload(e.target.files[0])} />
             <a className="btn sm" href="/api/template.csv">Descargar plantilla</a>
           </div>
-          <p className="small sub">Fechas DD/MM/YYYY o YYYY-MM-DD. Se validan: rango 01–31, exactamente 6 números, sin repetidos, fechas válidas, duplicados e incompletos.</p>
+          <p className="small sub">Fechas DD/MM/YYYY o YYYY-MM-DD. Se validan: rango 01–{pad(info.rango[1])}, exactamente 6 números, sin repetidos, fechas válidas, duplicados e incompletos.</p>
         </Card>
         <Card title="Captura manual" sub="Agregar un sorteo individual">
           <div className="row">
@@ -97,7 +151,7 @@ export default function Datos() {
           </div>
           <div className="row mt-s">
             {manual.nums.map((v, i) => (
-              <input key={i} type="number" min="1" max="31" style={{ width: 58 }} placeholder={`N${i + 1}`} value={v}
+              <input key={i} type="number" min="1" max={info.rango[1]} style={{ width: 58 }} placeholder={`N${i + 1}`} value={v}
                 onChange={(e) => { const n = [...manual.nums]; n[i] = e.target.value; setManual({ ...manual, nums: n }); }} />
             ))}
             <button className="btn primary" disabled={busy || !manual.fecha} onClick={addManual}>Agregar</button>

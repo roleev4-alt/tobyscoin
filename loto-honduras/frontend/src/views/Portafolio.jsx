@@ -42,7 +42,7 @@ function Similarity({ m }) {
 }
 
 export default function Portafolio() {
-  const { config, setConfig, periodo, portfolio, setPortfolio, openCombo, backtest, setTab } = useApp();
+  const { config, setConfig, periodo, portfolio, setPortfolio, openCombo, backtest, setTab, info } = useApp();
   const c = useColors();
   const [mode, setMode] = useState(config.mode);
   const [busy, setBusy] = useState(false);
@@ -93,11 +93,11 @@ export default function Portafolio() {
           <Card title="MI PORTAFOLIO" sub={`${MODES.find((m) => m[0] === mode)[1]} · seed ${portfolio.auditoria.modelo.random_seed} · hash ${p.hash}`}>
             <div className="grid g4">
               <Stat label="Jugadas" value="10" hint="60 posiciones" />
-              <Stat label="Números únicos" value={s.numeros_unicos} hint="de 31" />
+              <Stat label="Números únicos" value={s.numeros_unicos} hint={`de ${info.rango[1]}`} />
               <Stat label="Score" value={`${fmt(s.score_estadistico)}/100`} hint="promedio estadístico" />
               <Stat label="Diversidad" value={`${fmt(s.diversidad.indice)}/100`} hint={s.diversidad.interpretacion} />
               <Stat label="Redundancia" value={`${fmt(s.redundancia)}/100`} hint="0 = sin números compartidos" />
-              <Stat label="Cobertura" value={`${fmt(s.cobertura.indice)}/100`} hint="% de los 31 números" />
+              <Stat label="Cobertura" value={`${fmt(s.cobertura.indice)}/100`} hint={`% de los ${info.rango[1]} números`} />
               <Stat label="Balance" value={`${fmt(s.balance)}/100`} hint="vs proporciones históricas" />
               <Stat label="Score total" value={`${fmt(s.score_total)}/100`} hint={s.formula_total} />
             </div>
@@ -132,7 +132,7 @@ export default function Portafolio() {
           <div className="grid g2">
             <Card title="12 · Mapa de cobertura" sub={`Veces que aparece cada número en las 60 posiciones · máximo ${s.cobertura.max_uso}`}>
               <Coverage cov={s.cobertura} />
-              <p className="small sub mt-s">No se obliga a usar los 31 números; la concentración excesiva se penaliza (tope por modo: {portfolio.portafolios[mode].parametros.tope_concentracion}).</p>
+              <p className="small sub mt-s">No se obliga a usar todos los números; la concentración excesiva se penaliza (tope por modo: {portfolio.portafolios[mode].parametros.tope_concentracion}).</p>
             </Card>
             <Card title="13 · Matriz de similitud" sub="Números compartidos entre cada par de jugadas (ámbar = 2, rojo = 3 o más)">
               <Similarity m={p.similitud} />

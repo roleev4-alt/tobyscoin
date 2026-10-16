@@ -7,7 +7,8 @@ se les permite ver.
 from __future__ import annotations
 
 from functools import lru_cache
-from itertools import combinations
+from itertools import chain, combinations
+from math import comb
 
 import numpy as np
 from scipy import stats as sps
@@ -17,8 +18,8 @@ from .validation import Draw
 
 N = NUM_MAX - NUM_MIN + 1
 NUMS = np.arange(NUM_MIN, NUM_MAX + 1)
-LOW_MAX = 15  # Bajos 01–15, Altos 16–31
-DECADES = [(1, 10), (11, 20), (21, 31)]
+LOW_MAX = NUM_MAX // 2  # 01–33: bajos 01–16, altos 17–33
+DECADES = [(1, 10), (11, 20), (21, NUM_MAX)]
 P_LINE = PICK / N  # probabilidad teórica de que un número salga en un sorteo
 
 
@@ -63,8 +64,10 @@ def combo_sum(C: np.ndarray) -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def all_combinations() -> np.ndarray:
-    """Las C(31,6)=736,281 combinaciones posibles (para distribuciones teóricas exactas)."""
-    return np.array(list(combinations(range(NUM_MIN, NUM_MAX + 1), PICK)), dtype=np.int8)
+    """Todas las combinaciones posibles, C(N,6) (para distribuciones teóricas exactas)."""
+    k = comb(N, PICK)
+    flat = np.fromiter(chain.from_iterable(combinations(range(NUM_MIN, NUM_MAX + 1), PICK)), dtype=np.int8, count=k * PICK)
+    return flat.reshape(k, PICK)
 
 
 @lru_cache(maxsize=1)
@@ -96,7 +99,7 @@ def _dec_label(code: int) -> str:
 
 
 def hits_pmf() -> dict:
-    """Aciertos de una jugada al azar contra un sorteo: hipergeométrica(31, 6, 6)."""
+    """Aciertos de una jugada al azar contra un sorteo: hipergeométrica(N, 6, 6)."""
     rv = sps.hypergeom(N, PICK, PICK)
     return {k: float(rv.pmf(k)) for k in range(PICK + 1)}
 
@@ -270,7 +273,7 @@ def trios(C: np.ndarray, min_count: int = 2, top: int = 25) -> dict:
     rows.sort(key=lambda r: (-r["veces"], r["trio"]))
     return {"top": rows[:top], "total_con_frecuencia_minima": len(rows), "minimo": min_count,
             "esperado_por_trio": round(exp_trio, 3),
-            "advertencia": (f"Existen 4,495 tríos posibles; con {n} sorteos cada trío se espera "
+            "advertencia": (f"Existen {comb(N, 3):,} tríos posibles; con {n} sorteos cada trío se espera "
                             f"~{exp_trio:.2f} veces. El tamaño de muestra es muy pequeño: "
                             "repeticiones de tríos son compatibles con el azar.")}
 
@@ -300,7 +303,7 @@ def structure(C: np.ndarray) -> dict:
         [{"patron": _dec_label(int(k)), "veces": int(v), "pct": round(100 * v / n, 2),
           "teorico_pct": round(100 * th["decadas"].get(_dec_label(int(k)), 0), 2)} for k, v in zip(dec_u, dec_c)],
         key=lambda r: -r["veces"])
-    hist_bins = list(range(20, 180, 10))
+    hist_bins = list(range(20, 200, 10))
     h, edges = np.histogram(sums, bins=hist_bins) if n else (np.zeros(len(hist_bins) - 1), hist_bins)
     theo_hist = th["suma_hist"]
     sum_hist = [{"rango": f"{int(edges[i])}–{int(edges[i + 1]) - 1}", "veces": int(h[i]),
@@ -330,7 +333,8 @@ def structure(C: np.ndarray) -> dict:
         "consecutivos": [{"pares_consecutivos": k, "veces": cons_d[k]["veces"], "pct": cons_d[k]["pct"],
                           "teorico_pct": round(100 * th["consecutivos"][k], 2)} for k in range(PICK)],
         "pruebas": chi,
-        "leyenda": "par_impar = impares/pares; bajo_alto = bajos(01–15)/altos(16–31); décadas = 01–10 / 11–20 / 21–31",
+        "leyenda": (f"par_impar = impares/pares; bajo_alto = bajos(01–{LOW_MAX:02d})/altos({LOW_MAX + 1:02d}–{NUM_MAX:02d}); "
+                    f"décadas = 01–10 / 11–20 / 21–{NUM_MAX:02d}"),
     }
 
 

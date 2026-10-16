@@ -2,7 +2,7 @@ import io
 
 import pandas as pd
 
-from app.validation import read_upload, validate_rows
+from app.validation import parse_text, read_upload, validate_rows
 
 
 def test_valid_and_sorted():
@@ -14,7 +14,7 @@ def test_valid_and_sorted():
 
 def test_rejections():
     rows = [
-        ["2025-07-01", 1, 2, 3, 4, 5, 32],      # fuera de rango
+        ["2025-07-01", 1, 2, 3, 4, 5, 34],      # fuera de rango (01–33)
         ["2025-07-02", 1, 2, 3, 4, 5, 5],       # repetido
         ["2025-07-03", 1, 2, 3, 4, 5],          # incompleto
         ["2025-07-04", 1, 2, 3, 4, 5, 6, 7],    # demasiados
@@ -50,3 +50,28 @@ def test_excel():
                   "numero4": [4], "numero5": [5], "numero6": [31]}).to_excel(buf, index=False)
     rep = validate_rows(read_upload("x.xlsx", buf.getvalue()))
     assert rep.valid[0].numeros == (1, 2, 3, 4, 5, 31)
+
+
+def test_parse_pasted_text():
+    txt = """Resultados 9:00 p.m. del 11 de Marzo del 2026 Loto Super Premio: 23 - 28 - 02 - 22 - 33 - 18 Diaria: 49 Multi-X: 2X
+Miércoles, 14 Octubre 2026
+07
+08
+29
+30
+31
+33
+Premio mayor L 10,000,000.00
+05-09-2026 | 9 12 18 20 23 26
+26/08/2026 3 9 14 16 18
+"""
+    rep = validate_rows(parse_text(txt))
+    got = {d.fecha.isoformat(): d.numeros for d in rep.valid}
+    assert got == {"2026-03-11": (2, 18, 22, 23, 28, 33), "2026-10-14": (7, 8, 29, 30, 31, 33),
+                   "2026-09-05": (9, 12, 18, 20, 23, 26)}
+    assert [e["tipo"] for e in rep.errors] == ["incompleto"]
+
+
+def test_numbers_in_single_cell():
+    rep = validate_rows([["14/10/2026", "07 08 29 30 31 33"], ["Sábado, 10 Octubre 2026", "01-02-07-12-14-29"]])
+    assert len(rep.valid) == 2 and not rep.errors

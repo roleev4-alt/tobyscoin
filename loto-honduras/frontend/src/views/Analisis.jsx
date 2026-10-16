@@ -31,7 +31,7 @@ function PairHeatmap({ matrix }) {
   const [hover, setHover] = useState(null);
   return (
     <div>
-      <div className="heat" style={{ gridTemplateColumns: `14px repeat(31, minmax(0, 1fr))` }} onMouseLeave={() => setHover(null)}>
+      <div className="heat" style={{ gridTemplateColumns: `14px repeat(${matrix.length}, minmax(0, 1fr))` }} onMouseLeave={() => setHover(null)}>
         <div />
         {matrix.map((_, j) => <div key={`h${j}`} style={{ textAlign: "center", aspectRatio: "auto" }}>{j % 5 === 0 ? j + 1 : ""}</div>)}
         {matrix.map((row, i) => (
@@ -50,7 +50,7 @@ function PairHeatmap({ matrix }) {
 }
 
 export default function Analisis() {
-  const { analysis, setTab } = useApp();
+  const { analysis, setTab, info } = useApp();
   const c = useColors();
   const [win, setWin] = useState("ult_20");
   if (!analysis) return <div className="loading">Cargue datos en la pestaña «Datos históricos» para ver el análisis.</div>;
@@ -195,11 +195,11 @@ export default function Analisis() {
       <p className="sub">{e.leyenda}. Se compara lo observado con la distribución teórica exacta calculada sobre las 736,281 combinaciones posibles.</p>
       <div className="grid g2">
         <ObsVsTheory title="4 · Pares e impares" sub={`impares/pares · χ² p = ${fmt(e.pruebas.impares.p, 3)}`} rows={e.par_impar} />
-        <ObsVsTheory title="5 · Bajos (01–15) y altos (16–31)" sub={`bajos/altos · χ² p = ${fmt(e.pruebas.bajos.p, 3)}`} rows={e.bajo_alto} />
+        <ObsVsTheory title={`5 · Bajos (01–${pad(info.bajo_max)}) y altos (${pad(info.bajo_max + 1)}–${pad(info.rango[1])})`} sub={`bajos/altos · χ² p = ${fmt(e.pruebas.bajos.p, 3)}`} rows={e.bajo_alto} />
         <ObsVsTheory title="6 · Distribución de la suma" sub={`Media ${e.suma.media} · mediana ${e.suma.mediana} · mín ${e.suma.minimo} · máx ${e.suma.maximo} · teórica ${e.suma.teorico_media} ± ${e.suma.teorico_desv}`} rows={e.suma.histograma} x="rango" />
         <ObsVsTheory title="Pares consecutivos por sorteo" sub="Ej.: 14-15 cuenta como 1 par consecutivo" rows={e.consecutivos} x="pares_consecutivos" />
       </div>
-      <Card title="Décadas (01–10 / 11–20 / 21–31)" sub="Cantidad de números en cada década">
+      <Card title={`Décadas (01–10 / 11–20 / 21–${pad(info.rango[1])})`} sub="Cantidad de números en cada década">
         <SimpleTable max={300} rows={e.decadas} cols={[{ k: "patron", h: "Patrón", l: 1 }, { k: "veces", h: "Veces" }, { k: "pct", h: "% obs.", f: (x) => `${x.pct}%` }, { k: "teorico_pct", h: "% teórico", f: (x) => `${x.teorico_pct}%` }]} />
       </Card>
       <div className="row"><div className="spacer" /><button className="btn primary" onClick={() => setTab("indices")}>Siguiente: Índices →</button></div>

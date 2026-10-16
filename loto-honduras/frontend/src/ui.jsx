@@ -104,7 +104,7 @@ export function NumberAudit({ n, numbers, draws, analysis }) {
       <div className="crumbs">Portafolio › Combinación › <b>Número</b> › Score › Datos históricos</div>
       <div className="row"><span className="ball" style={{ width: 54, height: 54, fontSize: "1.3rem" }}>{pad(n)}</span>
         <div><h2 style={{ margin: 0 }}>Número {pad(n)}</h2>
-          {row && <div className="sub">Índice de selección histórica: <b>{fmt(row.score)}</b> / 100 · ranking {row.ranking} de 31</div>}
+          {row && <div className="sub">Índice de selección histórica: <b>{fmt(row.score)}</b> / 100 · ranking {row.ranking} de {numbers.length}</div>}
         </div>
       </div>
       {!row && <p className="sub mt">Genere el índice (pestaña Índices) para ver el desglose.</p>}
@@ -121,7 +121,7 @@ export function NumberAudit({ n, numbers, draws, analysis }) {
               <tr><td><b>Total</b></td><td><b>{fmt(row.total)}</b></td><td>100</td><td /><td /></tr>
             </tbody>
           </table>
-          <p className="small sub mt-s">Cada componente se normaliza entre el mínimo y el máximo de los 31 números (0–1) y se multiplica por su peso.
+          <p className="small sub mt-s">Cada componente se normaliza entre el mínimo y el máximo de todos los números (0–1) y se multiplica por su peso.
             Recencia: valor crudo = −(sorteos desde la última aparición). {row.nota}</p>
         </div>
       )}

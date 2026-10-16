@@ -26,7 +26,7 @@ def make_rng(seed: int, context: date | None = None, stream: int = 0) -> np.rand
 
 
 def random_portfolio(rng: np.random.Generator, k: int = PORTFOLIO_SIZE) -> np.ndarray:
-    """Grupo de control: 10 combinaciones uniformes, 6 números distintos 01–31, sin duplicadas."""
+    """Grupo de control: 10 combinaciones uniformes, 6 números distintos del rango, sin duplicadas."""
     out: list[tuple] = []
     while len(out) < k:
         c = tuple(sorted((rng.choice(st.N, PICK, replace=False) + st.NUM_MIN).tolist()))

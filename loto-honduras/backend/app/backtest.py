@@ -496,7 +496,7 @@ def integrity_checks(sealed, fold_info, test_draws, gen_seq, hash_ok, draws, cfg
                   and e["aleatorio"].min() >= st.NUM_MIN and e["aleatorio"].max() <= st.NUM_MAX
                   and all(len(set(r)) == PICK for r in e["aleatorio"].tolist()) for e in sealed)
     checks.append({"control": "El baseline aleatorio utilizó las mismas condiciones", "ok": base_ok and len(test_draws) == len(sealed),
-                   "detalle": f"10 jugadas × 6 números 01–31, sin repetición, sobre los mismos {len(sealed)} sorteos de prueba."})
+                   "detalle": f"10 jugadas × 6 números 01–{st.NUM_MAX:02d}, sin repetición, sobre los mismos {len(sealed)} sorteos de prueba."})
     seq_ok = all(e["seq"] < gen_seq for e in sealed) and hash_ok
     checks.append({"control": "Las 10 jugadas fueron generadas antes de conocer el resultado real", "ok": seq_ok,
                    "detalle": "Todas las jugadas se sellaron (hash SHA-256) en la fase de generación y los hashes "

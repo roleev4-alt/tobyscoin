@@ -75,7 +75,7 @@ export default function App() {
       <header className="header">
         <div className="wrap">
           <div className="brand">
-            <div className="logo">31</div>
+            <div className="logo">{info ? info.rango[1] : ""}</div>
             <div><div className="t1">LOTO HONDURAS</div><div className="t2">ANALIZADOR ESTADÍSTICO</div></div>
           </div>
           <div className="meta">

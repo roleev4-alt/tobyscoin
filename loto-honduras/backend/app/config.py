@@ -10,11 +10,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import date
 import hashlib
 import json
+import os
 
 MODEL_VERSION = "1.0.0"
 
 NUM_MIN = 1
-NUM_MAX = 31
+# Loto Super Premio de Honduras: 6 números del 01 al 33 (según los resultados oficiales
+# publicados). Se puede cambiar con la variable de entorno LOTO_NUM_MAX (p. ej. 31).
+NUM_MAX = int(os.environ.get("LOTO_NUM_MAX", "33"))
 PICK = 6
 PORTFOLIO_SIZE = 10
 

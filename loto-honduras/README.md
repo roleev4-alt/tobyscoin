@@ -1,7 +1,7 @@
 # LOTO HONDURAS — ANALIZADOR ESTADÍSTICO
 
 Laboratorio estadístico reproducible para analizar resultados históricos de Loto Honduras
-(6 números entre 01 y 31) y construir un **portafolio de 10 jugadas** de forma estructurada.
+(Super Premio: 6 números entre 01 y 33) y construir un **portafolio de 10 jugadas** de forma estructurada.
 Su objetivo es **comprobar** si una estrategia basada en datos históricos se comporta mejor que el
 azar fuera de muestra, **sin asumir que sí**.
 
@@ -38,8 +38,15 @@ así que migrar a PostgreSQL solo requiere cambiar `app/db.py`.
 
 ## Datos
 
+Juego: **Loto Super Premio** (miércoles y sábados), 6 números del **01 al 33** según los resultados
+oficiales publicados (el rango se cambia con la variable de entorno `LOTO_NUM_MAX`, p. ej. `31`).
+
 No se encontró una fuente pública oficial y automatizable de resultados históricos, por lo que la
 app **no trae resultados reales precargados y nunca los inventa**. Opciones:
+
+- **Pegar texto** copiado de cualquier página de resultados: reconoce fechas en español o inglés
+  («Miércoles, 14 Octubre 2026», «11 de marzo de 2026», «14/10/2026») y toma los 6 números que
+  siguen a cada fecha, ignorando horas, montos y multiplicadores. Muestra una vista previa antes de guardar.
 
 - **CSV / Excel**: columnas `fecha, n1…n6` (o `numero1…numero6`), o bien la fecha en la primera
   columna y los seis números en las siguientes. Fechas `DD/MM/YYYY` o `YYYY-MM-DD`.
@@ -50,7 +57,7 @@ app **no trae resultados reales precargados y nunca los inventa**. Opciones:
   como «NO son resultados reales». No se pueden mezclar con datos reales. Sirven como control
   negativo: sobre datos justos el laboratorio debe concluir que no hay ventaja (y lo hace).
 
-Validación: rango 01–31, exactamente 6 números, sin repetidos, fecha válida, fechas duplicadas,
+Validación: rango 01–33, exactamente 6 números, sin repetidos, fecha válida, fechas duplicadas,
 filas incompletas y valores no numéricos. Cada fila rechazada se reporta con su motivo; nada se
 corrige en silencio.
 
@@ -70,7 +77,7 @@ recibe el historial ya recortado: no tiene acceso a la base de datos ni a result
 
 **Índice de selección histórica (0–100)**: 7 componentes (frecuencia histórica 25, reciente 20,
 tendencia 15, pares 15, tríos 5, recencia 10, estructura 10; pesos configurables), cada uno
-normalizado min–max entre los 31 números. *No es una probabilidad.*
+normalizado min–max entre todos los números del rango. *No es una probabilidad.*
 
 **Candidatos**: 10 estrategias generan ~3,000 combinaciones (configurable entre 1,000 y 10,000) por muestreo
 ponderado sin reemplazo y filtros estructurales. Se eliminan duplicados y, dentro de cada estrategia,
@@ -107,7 +114,7 @@ los hashes. Las versiones del modelo se comparan por desempeño **fuera de muest
 
 - La muestra del período inicial es pequeña (≈1–2 sorteos por semana): la potencia estadística es
   baja y solo diferencias grandes serían detectables.
-- El rango 01–31 viene del requerimiento; verifique las reglas vigentes del juego antes de importar
-  datos (`NUM_MAX` en `backend/app/config.py`).
+- El rango 01–33 se tomó de los resultados oficiales publicados; si el juego cambia, ajuste
+  `LOTO_NUM_MAX`.
 - Los portafolios más diversificados pueden lograr más sorteos con «alguna jugada ≥ 3» simplemente
   por cubrir más números. Eso es estructura, no predicción.

@@ -192,7 +192,7 @@ def balance_index(C: np.ndarray, m: HistoryModel) -> float:
         h_odd = float((m.C % 2 == 1).sum() / m.C.size)
         h_low = float((m.C <= st.LOW_MAX).sum() / m.C.size)
     else:
-        h_odd, h_low = 16 / 31, 15 / 31
+        h_odd, h_low = float((st.NUMS % 2 == 1).mean()), float((st.NUMS <= st.LOW_MAX).mean())
     dev = abs(odd_share - h_odd) + abs(low_share - h_low)
     return round(max(0.0, 1 - 2.5 * dev) * 100, 1)
 
