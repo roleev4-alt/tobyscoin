@@ -21,10 +21,13 @@ from pydantic import BaseModel, Field
 
 from . import stats as st
 from .backtest import run_backtest
-from .config import (COMPONENTS, DEFAULT_COMBO_WEIGHTS, DEFAULT_OVERLAP_PENALTY, DEFAULT_PERIOD_END,
+from .config import (MODEL_PRESETS, COMPONENTS, DEFAULT_COMBO_WEIGHTS, DEFAULT_OVERLAP_PENALTY, DEFAULT_PERIOD_END,
                      DEFAULT_PERIOD_START, DEFAULT_WEIGHTS, DISCLAIMER, MODEL_VERSION, MODES, NUM_MAX,
                      NUM_MIN, PICK, STRATEGIES, ModelConfig)
 from .db import Store, dataset_hash, result_hash
+from .engine import portfolio_hash
+from .fairness import audit as fairness_audit
+from .live import PLAN as LIVE_PLAN, evaluate as live_evaluate
 from .engine import generate_portfolios, portfolio_report, random_report
 from .scoring import COMPONENT_LABELS
 from .synthetic import SOURCE_LABEL, synthetic_draws
@@ -74,6 +77,18 @@ class TextImport(BaseModel):
     texto: str
     fuente: str | None = None
     confirmar: bool = False
+
+
+class LiveFreeze(BaseModel):
+    fecha_sorteo: date
+    version: str = "v1.0"
+
+
+class LiveManual(BaseModel):
+    fecha_sorteo: date
+    version: str = "manual"
+    combinaciones: list[list[int]]
+    nota: str = ""
 
 
 class UrlImport(BaseModel):
@@ -441,6 +456,79 @@ def versions():
     rows.sort(key=lambda x: (not x["valido"], -(x["diferencia_vs_azar"] or 0)))
     return {"versiones": rows,
             "criterio": "Ordenado por desempeño FUERA DE MUESTRA (diferencia vs azar). El desempeño dentro de muestra no se usa para ordenar."}
+
+
+# ------------------------------------------------------------------ auditoría de equidad
+@app.post("/api/fairness")
+def fairness(req: AnalysisRequest):
+    draws = period_draws(req.periodo)
+    return clean(fairness_audit(draws))
+
+
+# ------------------------------------------------------------------ prueba en vivo
+@app.get("/api/presets")
+def presets():
+    return {k: {"etiqueta": v["etiqueta"], "config": ModelConfig.from_dict(v["config"]).to_dict()}
+            for k, v in MODEL_PRESETS.items()}
+
+
+def _check_not_played(fecha: date):
+    if any(d.fecha == fecha for d in store.draws(fecha, fecha)):
+        raise HTTPException(409, "Ese sorteo ya tiene resultado cargado: solo se pueden congelar jugadas ANTES del sorteo.")
+
+
+@app.post("/api/live/freeze")
+def live_freeze(req: LiveFreeze):
+    if req.version not in MODEL_PRESETS:
+        raise HTTPException(400, f"Versión desconocida: {req.version}")
+    _check_not_played(req.fecha_sorteo)
+    history = [d for d in store.draws() if d.fecha < req.fecha_sorteo]
+    require_draws(history, 20)
+    cfg = build_config(MODEL_PRESETS[req.version]["config"])
+    res = generate_portfolios(history, cfg)
+    combos = res["portfolios"][cfg.mode]["combos"]
+    try:
+        live_id = store.add_live(req.fecha_sorteo.isoformat(), req.version, "app", history[-1].fecha.isoformat(),
+                                 len(history), dataset_hash(history), cfg.to_dict(), combos.tolist(),
+                                 portfolio_hash(combos))
+    except Exception:
+        raise HTTPException(409, "Ya hay jugadas congeladas para ese sorteo y esa versión.")
+    return clean({"id": live_id, "hash": portfolio_hash(combos), "combinaciones": combos.tolist()})
+
+
+@app.post("/api/live/manual")
+def live_manual(req: LiveManual):
+    _check_not_played(req.fecha_sorteo)
+    combos = [sorted(c) for c in req.combinaciones]
+    if not combos or len(combos) > 20:
+        raise HTTPException(400, "Registre entre 1 y 20 combinaciones.")
+    for c in combos:
+        if len(c) != PICK or len(set(c)) != PICK or min(c) < NUM_MIN or max(c) > NUM_MAX:
+            raise HTTPException(400, f"Combinación inválida: {c}")
+    import numpy as np
+    h = portfolio_hash(np.array(combos))
+    try:
+        live_id = store.add_live(req.fecha_sorteo.isoformat(), req.version.strip() or "manual", "manual", None, None,
+                                 None, {}, combos, h, req.nota)
+    except Exception:
+        raise HTTPException(409, "Ya hay jugadas registradas para ese sorteo con ese nombre.")
+    return {"id": live_id, "hash": h}
+
+
+@app.get("/api/live")
+def live_list():
+    return clean(live_evaluate(store.live(), store.draws()))
+
+
+@app.delete("/api/live/{live_id}")
+def live_delete(live_id: int):
+    entry = next((e for e in store.live() if e["id"] == live_id), None)
+    if not entry:
+        raise HTTPException(404, "Registro no encontrado")
+    if store.draws(date.fromisoformat(entry["fecha_sorteo"]), date.fromisoformat(entry["fecha_sorteo"])):
+        raise HTTPException(409, "No se puede borrar un registro ya evaluado (integridad de la prueba).")
+    store.delete_live(live_id)
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------ frontend compilado

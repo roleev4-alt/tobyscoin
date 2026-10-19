@@ -50,6 +50,20 @@ DEFAULT_COMBO_WEIGHTS = {
     "consecutivos": 10.0,
 }
 
+# Parte opcional del score: evitar combinaciones populares (no cambia la probabilidad
+# de ganar; mejora el reparto esperado de un premio compartido). Solo se incluye en
+# la configuración si su peso es > 0, para que el modelo v1.0 quede idéntico.
+OPTIONAL_COMBO_KEYS = ["anti_popularidad"]
+
+# Versiones predefinidas del modelo. v1.0 es la que está en prueba en vivo y NO se modifica.
+MODEL_PRESETS = {
+    "v1.0": {"etiqueta": "Modelo v1.0 — original (en prueba en vivo)", "config": {}},
+    "v1.1": {"etiqueta": "Modelo v1.1 — v1.0 + anti-popularidad (actuario)",
+             "config": {"combo_weights": {"individual": 35.0, "pares": 20.0, "trios": 5.0, "estructura": 20.0,
+                                          "suma": 10.0, "consecutivos": 10.0, "anti_popularidad": 20.0},
+                        "model_version": "1.1.0"}},
+}
+
 # Modos del portafolio (secciones 16-17): lambda = peso de la diversidad.
 MODES = {
     "concentrado": {"lambda_div": 0.35, "concentration_cap": 5},
@@ -103,9 +117,12 @@ class ModelConfig:
         cfg = cls()
         for k, v in (d or {}).items():
             if hasattr(cfg, k) and v is not None:
+                if k in ("weights", "combo_weights") and isinstance(v, dict):
+                    v = {**getattr(cfg, k), **v}  # un dict parcial completa los pesos por defecto
                 setattr(cfg, k, v)
         cfg.weights = normalize_weights(cfg.weights, COMPONENTS)
-        cfg.combo_weights = normalize_weights(cfg.combo_weights, list(DEFAULT_COMBO_WEIGHTS))
+        extra = [k for k in OPTIONAL_COMBO_KEYS if float(cfg.combo_weights.get(k) or 0) > 0]
+        cfg.combo_weights = normalize_weights(cfg.combo_weights, list(DEFAULT_COMBO_WEIGHTS) + extra)
         if cfg.mode not in MODES:
             raise ValueError(f"Modo desconocido: {cfg.mode}")
         if len(cfg.overlap_penalty) != PICK + 1:

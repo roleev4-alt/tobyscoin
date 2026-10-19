@@ -18,6 +18,7 @@ import numpy as np
 from . import stats as st
 from .candidates import CandidatePool
 from .config import MODES, PICK, PORTFOLIO_SIZE, STRATEGIES
+from .popularity import explain as explain_popularity, popularity
 from .scoring import HistoryModel
 
 N = st.N
@@ -205,8 +206,9 @@ def summarize(C: np.ndarray, scores: np.ndarray, strategies: np.ndarray, m: Hist
     bal = balance_index(C, m)
     stat = round(float(scores.mean()), 1)
     total = round(0.5 * stat + 0.25 * div["indice"] + 0.15 * cov["indice"] + 0.10 * bal, 1)
+    pop, _ = popularity(C, m.C[-20:] if m.n else None)
     return {"score_total": total, "score_estadistico": stat, "diversidad": div, "cobertura": cov,
-            "redundancia": red, "balance": bal, "numeros_unicos": cov["numeros_unicos"],
+            "redundancia": red, "balance": bal, "popularidad_promedio": round(float(pop.mean()) * 100, 1), "numeros_unicos": cov["numeros_unicos"],
             "formula_total": "0.50·estadístico + 0.25·diversidad + 0.15·cobertura + 0.10·balance"}
 
 
@@ -286,6 +288,7 @@ def combo_audit(pf: dict, pool: CandidatePool, m: HistoryModel) -> list[dict]:
             "compartidos_con_otras": [int(s) for s in shared],
             "aporte_diversidad": round(base_div - div_without, 1),
             "ranking_en_candidatos": r,
+            "popularidad": explain_popularity(C[pos], m.C[-20:] if m.n else None),
             "por_que": reasons,
             "estructura": {"impares": int(st.odd_count(C[pos:pos + 1])[0]), "bajos": int(st.low_count(C[pos:pos + 1])[0]),
                            "suma": int(st.combo_sum(C[pos:pos + 1])[0]),

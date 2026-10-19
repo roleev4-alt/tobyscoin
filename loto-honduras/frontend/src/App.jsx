@@ -7,6 +7,7 @@ import Indices from "./views/Indices.jsx";
 import Portafolio from "./views/Portafolio.jsx";
 import Laboratorio from "./views/Laboratorio.jsx";
 import Auditoria from "./views/Auditoria.jsx";
+import EnVivo from "./views/EnVivo.jsx";
 
 const TABS = [
   ["datos", "Datos históricos"],
@@ -14,6 +15,7 @@ const TABS = [
   ["indices", "Índices"],
   ["portafolio", "Portafolio"],
   ["laboratorio", "Laboratorio / Backtesting"],
+  ["envivo", "Prueba en vivo"],
   ["auditoria", "Auditoría y versiones"],
 ];
 
@@ -107,6 +109,7 @@ export default function App() {
             {tab === "indices" && <Indices />}
             {tab === "portafolio" && <Portafolio />}
             {tab === "laboratorio" && <Laboratorio />}
+            {tab === "envivo" && <EnVivo />}
             {tab === "auditoria" && <Auditoria />}
           </>
         )}

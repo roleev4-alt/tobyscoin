@@ -110,6 +110,22 @@ reproducibilidad). Si alguno falla, el experimento se declara inválido.
 pesos, parámetros, seed, versión y resultado (hash). «Reproducir análisis» lo recalcula y compara
 los hashes. Las versiones del modelo se comparan por desempeño **fuera de muestra**.
 
+## Módulos de los «profesionales» (v1.1)
+
+- **Auditoría de equidad** (auditor de juegos / ingeniero) — `backend/app/fairness.py`, en Laboratorio.
+  Siete pruebas de sesgo (uniformidad, estabilidad entre mitades, memoria entre sorteos, dispersión de
+  pares, estructura) con corrección de Holm y análisis de potencia (sesgo mínimo detectable).
+- **Índice de popularidad** (actuario) — `backend/app/popularity.py`. Estima qué tan probable es que
+  otros jueguen una combinación parecida (fechas, secuencias, progresiones, múltiplos, ganadores
+  recientes, agrupamiento). El modelo **v1.1** lo usa como peso «anti-popularidad»: no cambia la
+  probabilidad de acertar; reduce cuánto se repartiría un premio compartido.
+- **Prueba en vivo pre-registrada** (estadístico) — `backend/app/live.py`, pestaña «Prueba en vivo».
+  Jugadas congeladas con hash antes de cada sorteo, evaluadas automáticamente al cargar el resultado,
+  plan fijado de antemano (v1.0, 100 sorteos, α = 0.05 contra 5,000 portafolios aleatorios) y tabla de potencia.
+  No se puede congelar un sorteo ya jugado ni borrar un registro evaluado.
+
+El modelo v1.0 no cambia: reproduce exactamente las jugadas congeladas anteriormente.
+
 ## Limitaciones
 
 - La muestra del período inicial es pequeña (≈1–2 sorteos por semana): la potencia estadística es

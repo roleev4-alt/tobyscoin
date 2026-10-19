@@ -178,6 +178,13 @@ export function ComboAudit({ a }) {
       <h4 className="mt">Estructura</h4>
       <p className="small">Impares/pares: {a.estructura.impares}/{6 - a.estructura.impares} · Bajos/altos: {a.estructura.bajos}/{6 - a.estructura.bajos} · Suma: {a.estructura.suma} · Pares consecutivos: {a.estructura.consecutivos}</p>
       <p className="small">Números compartidos con las otras 9 jugadas: {a.compartidos_con_otras.join(", ")}</p>
+      {a.popularidad && (
+        <>
+          <h4 className="mt">Popularidad estimada: {fmt(a.popularidad.popularidad)} / 100</h4>
+          <table><tbody>{a.popularidad.componentes.map((c) => <tr key={c.clave}><td>{c.etiqueta}</td><td>{fmt(c.valor, 2)}</td></tr>)}</tbody></table>
+          <p className="small sub">Cuanto más popular, más personas probablemente juegan una combinación parecida y más se repartiría un premio compartido. No cambia la probabilidad de acertar.</p>
+        </>
+      )}
       <h4 className="mt">¿Por qué fue seleccionada?</h4>
       <ul className="small">{a.por_que.map((r, i) => <li key={i}>{r}</li>)}</ul>
       <p className="sub small">Toque cualquier número para ver su score y sus datos históricos.</p>

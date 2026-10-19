@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis, Legend } from "recharts";
 import { api, fmt, pad } from "../api.js";
 import { Balls, Card, Notice, Seg, SimpleTable, Stat, heatColor, useApp, useColors } from "../ui.jsx";
@@ -48,6 +48,10 @@ export default function Portafolio() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [pen, setPen] = useState(config.overlap_penalty);
+  const [presets, setPresets] = useState({});
+  useEffect(() => { api.get("/presets").then(setPresets).catch(() => {}); }, []);
+  const activePreset = Object.keys(presets).find((k) => (presets[k].config.model_version === config.model_version)
+    && JSON.stringify(Object.keys(presets[k].config.combo_weights).sort()) === JSON.stringify(Object.keys(config.combo_weights).sort()));
 
   const generate = async (cfgOverride = {}) => {
     setBusy(true); setErr("");
@@ -65,6 +69,15 @@ export default function Portafolio() {
   return (
     <div className="grid">
       <Card title="Configuración del portafolio" sub="Las 10 jugadas se optimizan como un único portafolio: calidad estadística + diversidad + cobertura − redundancia.">
+        {Object.keys(presets).length > 0 && (
+          <div className="row" style={{ marginBottom: 10 }}>
+            <span className="small sub">Versión del modelo:</span>
+            {Object.entries(presets).map(([k, v]) => (
+              <button key={k} className={`btn sm ${activePreset === k ? "primary" : ""}`} title={v.etiqueta}
+                onClick={() => { setConfig({ ...v.config, seed: config.seed, mode }); setPen(v.config.overlap_penalty); }}>{v.etiqueta}</button>
+            ))}
+          </div>
+        )}
         <div className="row">
           <Seg value={mode} onChange={setMode} options={MODES} />
           <label className="f">Random seed<input type="number" style={{ width: 130 }} value={config.seed} onChange={(e) => setConfig({ ...config, seed: Number(e.target.value) })} /></label>
@@ -99,6 +112,7 @@ export default function Portafolio() {
               <Stat label="Redundancia" value={`${fmt(s.redundancia)}/100`} hint="0 = sin números compartidos" />
               <Stat label="Cobertura" value={`${fmt(s.cobertura.indice)}/100`} hint={`% de los ${info.rango[1]} números`} />
               <Stat label="Balance" value={`${fmt(s.balance)}/100`} hint="vs proporciones históricas" />
+              <Stat label="Popularidad" value={`${fmt(s.popularidad_promedio)}/100`} hint="menor = premio menos compartido" />
               <Stat label="Score total" value={`${fmt(s.score_total)}/100`} hint={s.formula_total} />
             </div>
             <div className="mt">

@@ -12,6 +12,7 @@ import numpy as np
 
 from . import stats as st
 from .config import COMPONENTS, PICK, ModelConfig
+from .popularity import popularity
 from .validation import Draw
 
 N = st.N
@@ -200,8 +201,9 @@ class HistoryModel:
         estructura = (self.odd_p[odd] + self.low_p[low] + np.clip(dec_p, 0, 1)) / 3
         suma = self.sum_density[np.clip(st.combo_sum(C), 0, 199)]
         cons = self.cons_p[np.clip(st.consecutive_count(C), 0, PICK - 1)]
+        pop, _ = popularity(C, self.C[-20:] if self.n else None)
         return {"individual": individual, "pares": pares, "trios": trios,
-                "estructura": estructura, "suma": suma, "consecutivos": cons}
+                "estructura": estructura, "suma": suma, "consecutivos": cons, "anti_popularidad": 1.0 - pop}
 
     def combo_scores(self, C: np.ndarray) -> tuple[np.ndarray, dict]:
         parts = self.combo_parts(C)

@@ -37,6 +37,21 @@ CREATE TABLE IF NOT EXISTS imports (
     rechazados INTEGER NOT NULL,
     detalle TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS live_tests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    creado TEXT NOT NULL,
+    fecha_sorteo TEXT NOT NULL,
+    version TEXT NOT NULL,
+    origen TEXT NOT NULL,
+    historial_hasta TEXT,
+    historial_n INTEGER,
+    dataset_hash TEXT,
+    config TEXT NOT NULL,
+    combos TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    nota TEXT,
+    UNIQUE (fecha_sorteo, version)
+);
 CREATE TABLE IF NOT EXISTS experiments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     creado TEXT NOT NULL,
@@ -147,6 +162,34 @@ class Store:
         fuentes = [dict(x) for x in self.conn.execute("SELECT fuente, COUNT(*) c FROM draws GROUP BY fuente")]
         return {"total": r["c"], "desde": r["mn"], "hasta": r["mx"], "ultima_importacion": r["imp"],
                 "sinteticos": r["s"] or 0, "fuentes": fuentes}
+
+    # ---------- prueba en vivo ----------
+    @locked
+    def add_live(self, fecha_sorteo: str, version: str, origen: str, historial_hasta, historial_n, ds_hash,
+                 config: dict, combos: list, hsh: str, nota: str = "") -> int:
+        cur = self.conn.execute(
+            "INSERT INTO live_tests (creado,fecha_sorteo,version,origen,historial_hasta,historial_n,dataset_hash,"
+            "config,combos,hash,nota) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (now_iso(), fecha_sorteo, version, origen, historial_hasta, historial_n, ds_hash,
+             json.dumps(config, sort_keys=True), json.dumps(combos), hsh, nota))
+        self.conn.commit()
+        return cur.lastrowid
+
+    @locked
+    def live(self) -> list[dict]:
+        out = []
+        for r in self.conn.execute("SELECT * FROM live_tests ORDER BY fecha_sorteo, version"):
+            d = dict(r)
+            d["config"] = json.loads(d["config"])
+            d["combos"] = json.loads(d["combos"])
+            out.append(d)
+        return out
+
+    @locked
+    def delete_live(self, live_id: int) -> bool:
+        cur = self.conn.execute("DELETE FROM live_tests WHERE id=?", (live_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
 
     # ---------- experimentos ----------
     @locked

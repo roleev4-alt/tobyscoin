@@ -19,6 +19,37 @@ function Integrity({ checks, valid }) {
   );
 }
 
+function FairnessAudit({ periodo }) {
+  const [a, setA] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const run = async () => {
+    setBusy(true); setErr("");
+    try { setA(await api.post("/fairness", { periodo })); } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <Card title="Auditoría de equidad del sorteo" sub="¿Hay algún sesgo físico o técnico detectable? Es la única fuente conocida de ventaja real en una lotería."
+      right={<button className="btn primary" disabled={busy} onClick={run}>{busy ? "Analizando…" : a ? "Repetir" : "Ejecutar auditoría"}</button>}>
+      {err && <Notice kind="danger">{err}</Notice>}
+      {a && !a.valido && <Notice kind="warn">{a.mensaje}</Notice>}
+      {a && a.valido && (
+        <>
+          <Notice kind={a.hay_evidencia ? "warn" : "ok"}><b>{a.sorteos} sorteos. </b>{a.veredicto}</Notice>
+          <div className="mt-s"><SimpleTable rows={a.pruebas} cols={[
+            { k: "prueba", h: "Prueba", l: 1, f: (t) => <span title={t.detalle}>{t.prueba}<div className="small sub">{t.pregunta}</div></span> },
+            { k: "estadistico", h: "Estadístico" }, { k: "p", h: "p", f: (t) => fmt(t.p, 3) },
+            { k: "p_holm", h: "p (Holm)", f: (t) => fmt(t.p_holm, 3) },
+            { k: "resultado", h: "Resultado", l: 1, f: (t) => <span className={`chip ${t.p_holm < 0.05 ? "warn" : t.p < 0.05 ? "" : "ok"}`}>{t.resultado}</span> },
+          ]} /></div>
+          <p className="small sub mt-s"><b>Potencia:</b> con {a.sorteos} sorteos, un número tendría que salir en ~{a.potencia.minimo_detectable_pct}% de los sorteos
+            (en vez de {a.potencia.prob_base_pct}%, es decir +{a.potencia.aumento_relativo_pct}%) para detectarlo. Un sesgo de +20% requeriría
+            ~{a.potencia.sorteos_para_detectar_20pct.toLocaleString("es")} sorteos; uno de +10%, ~{a.potencia.sorteos_para_detectar_10pct.toLocaleString("es")}. {a.nota}</p>
+        </>
+      )}
+    </Card>
+  );
+}
+
 export default function Laboratorio() {
   const { periodo, config, backtest, setBacktest } = useApp();
   const c = useColors();
@@ -54,6 +85,7 @@ export default function Laboratorio() {
 
   return (
     <div className="grid">
+      <FairnessAudit periodo={periodo} />
       <Notice kind="info"><b>Pregunta fundamental: </b>¿El análisis de resultados anteriores permite construir una estrategia que históricamente se comporte mejor que
         seleccionar números al azar? El laboratorio no asume que la respuesta es sí: intenta demostrarlo o refutarlo con validación temporal estricta.</Notice>
       <Card title="Configuración del experimento (walk-forward)" sub="Entrenamiento: desde el inicio del período hasta la fecha indicada. Prueba: bloques mensuales posteriores; luego el entrenamiento se amplía y se avanza.">
