@@ -1,0 +1,10 @@
+LOTO SUPER PREMIO — 5 JUGADAS CONGELADAS PARA EL SÁBADO 14/11/2026
+Modelo v1.1 (v1.0 + anti-popularidad), modo Equilibrado optimizado para 5 jugadas. Datos: 182 sorteos hasta 11/11/2026. Hash bce4476f3e9dc2a3
+
+OPCIÓN 01:  05 — 06 — 14 — 22 — 25 — 31   (Modelo mixto, score 77.8, popularidad 28/100)
+OPCIÓN 02:  02 — 03 — 14 — 19 — 31 — 33   (Tendencia histórica, score 77.0, popularidad 0/100)
+OPCIÓN 03:  08 — 09 — 13 — 22 — 26 — 33   (Balance par/impar, score 75.5, popularidad 0/100)
+OPCIÓN 04:  04 — 08 — 11 — 20 — 21 — 31   (Pares fuertes, score 74.3, popularidad 43/100)
+OPCIÓN 05:  05 — 10 — 11 — 18 — 26 — 30   (Diversificación, score 73.8, popularidad 32/100)
+
+Referencia del azar con 5 jugadas: 1.09 aciertos promedio por jugada; ~26% de los sorteos con alguna jugada de 3+ aciertos; 6 aciertos: 1 en 221,514.
