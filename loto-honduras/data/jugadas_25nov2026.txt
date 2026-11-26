@@ -1,0 +1,15 @@
+LOTO SUPER PREMIO — 10 JUGADAS CONGELADAS PARA EL MIÉRCOLES 25/11/2026
+Modelo v1.2: candidatos del modelo v1.1 (anti-popularidad) + optimización exacta de cobertura. Datos: 185 sorteos hasta 21/11/2026. Hash 2a5f917e51f062ed
+
+OPCIÓN 01:  01 — 05 — 08 — 10 — 20 — 33   (popularidad 23/100)
+OPCIÓN 02:  01 — 03 — 04 — 17 — 25 — 32   (popularidad 8/100)
+OPCIÓN 03:  02 — 10 — 17 — 19 — 24 — 31   (popularidad 29/100)
+OPCIÓN 04:  02 — 11 — 15 — 18 — 20 — 23   (popularidad 26/100)
+OPCIÓN 05:  03 — 06 — 14 — 15 — 30 — 33   (popularidad 19/100)
+OPCIÓN 06:  04 — 05 — 12 — 21 — 28 — 31   (popularidad 32/100)
+OPCIÓN 07:  06 — 07 — 13 — 23 — 26 — 29   (popularidad 27/100)
+OPCIÓN 08:  07 — 14 — 18 — 22 — 24 — 27   (popularidad 27/100)
+OPCIÓN 09:  09 — 16 — 19 — 22 — 26 — 30   (popularidad 22/100)
+OPCIÓN 10:  10 — 11 — 16 — 21 — 27 — 29   (popularidad 22/100)
+
+Probabilidad exacta de que AL MENOS UN boleto tenga: 2+ aciertos 99.9% (10 al azar: 96.8%), 3+ aciertos 50.9% (al azar: 44.6%), 4+ aciertos 4.90% (al azar: 4.79%). 6 aciertos: 1 en 110,757.
