@@ -10,3 +10,4 @@ fecha_sorteo,version,hash,resultado,aciertos_por_opcion,total,promedio,mejor,esp
 21/11/2026,v1.2 cobertura (5),82bafd5e6ff06112,03-11-13-17-19-24,1|1|0|2|1,5,1.0,2,1.09
 21/11/2026,v1.1 (20),ed15c8f1429d14f0,03-11-13-17-19-24,1|1|1|2|0|1|1|1|2|1|0|2|0|0|1|1|1|0|0|2,18,0.9,2,1.09
 25/11/2026,v1.2 cobertura (10),2a5f917e51f062ed,03-11-23-24-28-32,0|2|1|2|1|1|1|1|0|1,10,1.0,2,1.09
+25/11/2026,manual usuario (1) — números tomados de las opciones 02 y 04,—,03-11-23-24-28-32,4,4,4,4,1.09
